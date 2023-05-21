@@ -133,3 +133,47 @@ Intel 80386 后，四个通用寄存器（EAX, EBX, ECX, EDX），它们较低�
 
 
 
+
+# VmWare安装共享目录工具
+
+选择菜单栏：虚拟机-->（重新）安装VmWare Tools，这是一个共享工具，点后会在虚拟机下方弹出：
+
+.... 在客户机中装载虚拟CD驱动器，启动终端，解压后使用vmware-install.pl安装....
+
+
+
+首先挂载cdrom
+
+```shell
+sudo mkdir /mnt/cdrom
+sudo mount /dev/cdrom /mnt/cdrom
+```
+
+挂载成功后
+
+```shell
+$ ls /mnt/cdrom/
+manifest.txt  run_upgrader.sh  VMwareTools-9.9.0-2304977.tar.gz  vmware-tools-upgrader-32  vmware-tools-upgrader-64
+tar -xvf /mnt/cdrom/VMwareTools-9.9.0-2304977.tar.gz
+# 解压到当前目录
+cd /home/test/vmware-tools-distrib
+./vmware-install.pl
+#安装
+The configuration of VMware Tools 9.9.0 build-2304977 for Linux for this
+running kernel completed successfully.
+
+You must restart your X session before any mouse or graphics changes take
+effect.
+
+You can now run VMware Tools by invoking "/usr/bin/vmware-toolbox-cmd" from the
+command line.
+
+To enable advanced X features (e.g., guest resolution fit, drag and drop, and
+file and text copy/paste), you will need to do one (or more) of the following:
+1. Manually start /usr/bin/vmware-user
+2. Log out and log back into your desktop session; and,
+3. Restart your X session.
+
+```
+
+显示最后内容便安装成功了
