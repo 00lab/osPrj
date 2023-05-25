@@ -132,7 +132,8 @@ Intel 80386 后，四个通用寄存器（EAX, EBX, ECX, EDX），它们较低�
   这个架构也被称为 64 位拓展架构，即 x64，四个通用寄存器（RAX, RBX, RCX, RDX）是由 32 位的（EAX, EBX, ECX, EDX）64 位扩展而来，指针寄存器（RIP, RBP, RSP, RSI, RDI）也扩展了 ，增加八个通用寄存器（R8～R15）。 这些资源只可在 x64 处理器的 64 位模式下使用，在用来支持 x86 软件的遗留模式和兼容模式中不可见。
 
 
-
+# 共享文件夹，交叉开发
+https://www.cnblogs.com/UFO-blogs/p/17426478.html
 
 # VmWare安装共享目录工具
 
