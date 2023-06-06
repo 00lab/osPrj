@@ -75,6 +75,25 @@ else
 fi
 ```
 
+### 查看so相关信息
+
+```shell
+nm -D libxxx.so 打印出符号信息
+nm -D libxxx.so |grep T
+
+ldd libxxx.so 查看依赖关系
+
+readelf -a libxxxx.so 读取elf信息
+readelf libxxx.so |grep NEEDED 这样也可以读取依赖关系
+
+objdump -d ibxxxx.so
+
+rpm -qfl libxxx.so 可查看so库里包含的内容、头文件
+
+file libxxx.so 查看so库属性
+
+```
+
 
 ## linux函数
 ### 文件操作函数
