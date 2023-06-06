@@ -60,6 +60,19 @@ if [ 表达式1  –a  表达式2 ]
     逻辑或 -o                   条件表达式的或
 if [ 表达式1  –o 表达式2 ]
 
+
+#!/bin/bash
+#if [ -d x.txt ]
+
+if [ -d ]
+then
+    cd toolchain; \
+    ls *.patch | sort \
+    #FILES=$$(ls *.patch | sort); \
+    echo "ok"
+else
+    echo "nok"
+fi
 ```
 
 
