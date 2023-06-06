@@ -14,7 +14,8 @@ cat userinfo | awk -F ':' '{print $1}'rootdaemonbinsys
 -f : 检查文件是否存在，如果不是文件返回false。 To check if a file exists
 -d : 判断目录是否存在
 -n : 判断字符串非空， 例子 -n "${TEST}"
-```
+
+
 文件表达式
 -e filename 如果 filename存在，则为真
 -d filename 如果 filename为目录，则为真 
@@ -58,6 +59,9 @@ if [ 表达式1  –a  表达式2 ]
 
     逻辑或 -o                   条件表达式的或
 if [ 表达式1  –o 表达式2 ]
+
+```
+
 
 ## linux函数
 ### 文件操作函数
