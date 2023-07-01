@@ -1617,7 +1617,7 @@ x86采用不定长指令编码，正常的x86指令长度最短为1个字节，�
 
 1. 操作码独立表示指令功能
 
-   
+   ![image-20230701180101144](https://gitee.com/shengbao/images/raw/master/image-20230701180101144.png)
 
 2. 地方
 
@@ -1932,4 +1932,22 @@ if __name__ == '__main__':
 ```
 
 [使用Python脚本通过typora上传图片到github打造免费私人图床 - 义美-小义 - 博客园 (cnblogs.com)](https://www.cnblogs.com/shaozhu520/p/16248267.html)
+
+### typora+gitee配置方法
+
+记录于2023-07-01
+
+配置参考：
+
+[gitee搭配图床picgo教程 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/459743173)
+
+[(105条消息) Markdown书写软件Typora的使用--图片上传（PicGo与Github/Gitee）及排版_typora上传图片_雨翼轻尘的博客-CSDN博客](https://blog.csdn.net/m0_55746113/article/details/122681678)
+
+报错
+
+Failed to fetch
+
+（原来是版本太低了，参考 https://blog.csdn.net/WEDUEST/article/details/112341966 ，博客里的server设置2.3才有，升级后也不用设置了）
+
+Request failed with status code 403 （参考https://www.cnblogs.com/verg/p/16714826.html) 估计是因为gitee插件太老了，用博客所说的 githubPlus。
 
