@@ -1931,3 +1931,5 @@ if __name__ == '__main__':
 
 ```
 
+[使用Python脚本通过typora上传图片到github打造免费私人图床 - 义美-小义 - 博客园 (cnblogs.com)](https://www.cnblogs.com/shaozhu520/p/16248267.html)
+
