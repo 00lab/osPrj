@@ -268,7 +268,7 @@ com4: enabled=0
 启动boch后，在弹出窗里选Load，选中bochsrc.bxrc
 
 ![](https://img2023.cnblogs.com/blog/964076/202305/964076-20230513235514430-1030212875.png)
-
+![输入图片说明](../00_common/image.png)
 
 ![](https://img2023.cnblogs.com/blog/964076/202305/964076-20230513235450493-1742046625.png)
 
