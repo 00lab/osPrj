@@ -1931,6 +1931,121 @@ UINT32 CpServiceFileToEtcHguardDir(CHAR *srcDir, CHAR *fileName, int serviceFlag
 
 
 
+## c++ 特殊函数：=default 和 =delete
+
+在C++中，声明自定义的类型(class A )之后，编译器会默认生成一些成员函数，这些函数被称为**默认函数**
+
+【（默认）构造函数】、【拷贝（复制）构造函数】、【拷贝（复制）赋值运算符】、【移动构造函数】、【移动赋值运算】、【符析构函数】
+
+另外，编译器还会默认生成一些**操作符函数**，包括
+
+【operator ,】【operator &】【operator &&】【operator *】【operator ->】【operator ->*】【operator new】【operator delete】
+
+### 1.（=default）补充默认函数（显式缺省函数）
+
+```text
+#include <iostream>
+using namespace std;
+
+class Test
+{
+public:
+    Test() = default;  // 显式指定缺省函数 (补充默认构造函数)
+    Test(int i) : data(i) {}
+
+private:
+    int data;
+};
+
+int main()
+{
+    std::cout << std::is_pod<Test>::value << std::endl;  // 1
+}
+```
+
+C++11中提供了新的机制来控制默认函数生成来避免这个问题：声明时在函数末尾加上”= default”来显式地指示编译器去生成该函数的默认版本。
+
+### 2.（=delete）删除默认函数（显式删除函数）
+
+```text
+#include <iostream>
+using namespace std;
+
+class Test
+{
+public:
+    Test() = default;  // 显式指定缺省函数
+    Test(int i) : data(i) {}
+    Test(const Test& t) = delete; // 显式删除拷贝构造函数
+
+private:
+    int data;
+};
+
+int main()
+{
+    Test objT1;
+    Test objT2(objT1); // 无法通过编译
+}
+```
+
+禁止拷贝构造函数的使用, 在C++11中，只要在函数的定义或者声明后面加上”= delete”就能实现这样的效果（相比较，这种方式不容易犯错，且更容易理解）。
+
+### 3.其他方面：（= default）和（= delete）
+
+**3.1 (= default)类外使用**
+
+**(= default)能在类外的定义中修饰成员函数,**能够为一个类实现多个版本，只要我们在头文件里声明同样的函数，而在不同的cpp文件中用不同的方法实现，当选择不同的cpp编译时产生的版本就不同。
+
+```text
+class Example
+{
+public:
+    Example() = default;
+    Example(const Example&);
+
+private:
+    int data;
+};
+
+Example::Example(const Example& ex) = default; //类外使用
+```
+
+***注：default只能用于6个特殊成员函数，但delete可用于任何成员函数\***
+
+**3.1 (= default)类外使用**
+
+**(= default)**避免编译器做一些不必要的隐式数据转换，具体如下：
+
+```text
+class Example
+{
+public:
+    Example(int i) {}
+    Example(char c) = delete;
+};
+
+
+int main()
+{
+    Example ex(1);
+    Example ex1('a');  // 无法通过编译
+}
+```
+
+这个方法也能用于普通函数：
+
+```text
+void func(int i) {}
+void func(char c) = delete;
+
+int main()
+{
+    func(1);
+    func('a');   // 编译失败
+}
+```
+
 
 
 
