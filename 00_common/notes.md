@@ -1719,7 +1719,45 @@ SIB寻址模式：
 
 ![image-20230702232726410](https://gitee.com/shengbao/images/raw/master/image-20230702232726410.png)
 
+## AT&T语法
 
+x86汇编语法两种常见格式：Intel汇编语法和AT&T汇编语法。Intel汇编语法常见于Intel官方文档和Windows平台，AT&T汇编语法常用于Unix/linux平台。一般使用NASM汇编Intel格式的汇编程序，而使用as汇编AT&T格式的汇编程序。
+
+![image-20230705010129790](https://gitee.com/shengbao/images/raw/master/image-20230705010129790.png)
+
+- AT&T汇编的寄存器操作数前需要添加前缀“％”，立即数操作数需要添加前缀“$”。
+
+- 两种汇编最大的不同是操作数位置相反，Intel汇编指令形式为“助记符  目的操作数，源操作数”，而AT&T汇编指令形式为“助记符  源操作数，目的操作数”。
+
+- 内存操作数，其一般的Intel汇编形式为“section：[base+index*scale+disp]”，而AT&T汇编形式为“％section：disp（％base，％index，scale）”。段寄存器section、基址寄存器base、变址寄存器index、变址寄存器因子scale、偏移disp都是可选的。当不存在基址寄存器base时，仍需要保留逗号分隔符。当不存在偏移disp时，默认为1。当仅有偏移disp时，表示直接寻址操作数，Intel汇编使用“[]”将内存地址包含起来，而AT&T直接使用内存地址进行访问。
+
+  ![image-20230705010601244](https://gitee.com/shengbao/images/raw/master/image-20230705010601244.png)
+
+  ![image-20230705010637324](https://gitee.com/shengbao/images/raw/master/image-20230705010637324.png)
+
+- 内存操作数都是通过寻址的方式进行访问的，操作数的大小一般可以通过源寄存器或目的寄存器的大小自动推断。当内存操作数大小无法自动推断时（比如操作数中不存在寄存器时），必须显示指定操作数的大小：
+
+  ![image-20230705011030591](https://gitee.com/shengbao/images/raw/master/image-20230705011030591.png)
+
+  Intel汇编使用“byte/word/dword ptr”前缀修饰内存操作数，表示操作数的大小是1、2、4字节。而AT&T则是通过在操作码后添加后缀“b/w/l”进行表示，分别对应单词“byte/word/long”。
+
+- 内存操作数被作为数据对待，但是内存操作数被作为地址对待时，情况比较特殊，特殊内存操作数：
+
+  ![image-20230705011304241](https://gitee.com/shengbao/images/raw/master/image-20230705011304241.png)
+
+  当内存操作数作为跳转类指令（call、jmp、Jcc等）的目标地址时，需要使用前缀“\*”修饰内存操作数。例如指令“jmp 0x1234”表示跳转到地址0x1234处执行，而指令“jmp*0x1234”表示将地址0x1234处的内存数据取出，作为跳转地址。
+
+- 汇编数据定义格式：
+
+  ![image-20230705011621420](https://gitee.com/shengbao/images/raw/master/image-20230705011621420.png)
+
+  ![image-20230705011650372](https://gitee.com/shengbao/images/raw/master/image-20230705011650372.png)
+
+  Intel汇编使用“db/dw/dd”定义数据的长度，而AT&T使用“.byte/.word/.long”定义数据长度。Intel汇编使用“times”定义一块连续内存，而AT&T使用“.fill”定义连续内存。Intel汇编使用db后紧跟逗号分隔的常量列表定义字符串，而AT&T使用.ascii定义字符串。
+
+- 指令：nasm -f elf filename.s 、as filename.s –o filename.o
+
+## ELF文件
 
 # ARM后端
 
@@ -2047,6 +2085,353 @@ int main()
 ```
 
 
+
+## GCC返回值优化
+
+C++11以后，g++ 编译器默认开启复制省略（copy elision）选项，可以在以值语义传递对象时避免触发复制、移动构造函数。copy elision 主要发生在两个场景：
+
+- 函数返回的是值语义时
+- 函数参数是值语义时
+
+### 返回值优化
+
+返回值优化RVO（Return Value Optimization，RVO），即避免返回过程触发复制 / 移动构造函数。根据返回的值是否是匿名对象，可以分为两类：
+
+- 具名返回值优化 `NRVO` （Named Return Value Optimization，NRVO）
+- 匿名返回值优化 `URVO`（Unknown  Return Value Optimization，URVO ）
+
+二者的区别在于返回值是具名的局部变量（NRVO）还是无名的临时对象（URVO）。
+
+假定现在有类`Foo`，实现了复制构造函数（`ctor`）、 移动构造函数（`mtor`）。
+
+
+
+```cpp
+    class Foo { 
+    public:
+        Foo() { std::cout<<"default"<<std::endl; }
+
+        Foo(const Foo& rhs) { std::cout<<"ctor"<<std::endl; }
+        Foo(Foo&& rhs) { std::cout<<"mtor"<<std::endl; }
+    };
+```
+
+现在，有返回类型是`Foo`的 两个函数：`return_urvo_value` 和 `return_nrvo_value` ，实现如下：
+
+
+
+```cpp
+    Foo return_urvo_value() { 
+      return Foo{}; 
+    }
+
+    Foo return_nrvo_value() { 
+      Foo local_obj;
+      return local_obj; 
+    }
+```
+
+按照常规，`return_urvo_value`函数返回`Foo{}`应该触发`mtor`， `return_nrvo_value`函数返回`local_obj`应该触发`ctor`。真的如此吗？
+
+
+
+```cpp
+    int main(int argc, char const *argv[]) {
+        
+      auto x = return_urvo_value();
+      auto y = return_nrvo_value();  
+      return 0;
+    }
+```
+
+输出如下：
+
+
+
+```cpp
+    g++ rvo.cc  -o rvo && ./rvo
+    default
+    default
+```
+
+输出结果，令人惊讶！竟然都只调用了一次默认构造函数。这是因为编译器默认开启了RVO，为了禁止这个优化策略，需要为编译加上  *`-fno-elide-constructors`*  选项，此时输出如下：
+
+
+
+```cpp
+    $ g++ -fno-elide-constructors rvo.cc  -o rvo && ./rvo
+    default
+    mtor
+    mtor
+    default
+    mtor
+    mtor
+```
+
+下面对输出结果，逐个分析。
+
+#### URVO
+
+首先，`return_urvo_value`函数，触发两次移动构造函数，这很好理解：
+
+1. 基于return的`Foo{}`构造`return_urvo_value`函数的返回值，触发一次；
+2. 基于`return_urvo_value`函数返回的右值构造`x`，触发一次。
+
+`return_urvo_value`函数return的`Foo{}`，中间经过两次`mtor`，才将`Foo{}`的内部数据转移到了`x`。但是，这中间的两次`mtor`是可以避免的：由于return之后`Foo{}`就结束生命周期，那为什么不直接将`Foo{}`用于`x`呢？
+
+因此，编译器默认开启RVO，省略中间两次调用`mtor`的过程，直接基于`return_urvo_value`函数中return的`Foo{}`构造`x`。此时，整个过程简化如下：
+
+
+
+```cpp
+Foo x{}; 
+```
+
+#### NRVO
+
+但是!!!，`return_nrvo_value`函数，怎么也触发了两次`mtor`，而不是`ctor`+ `mtor`？
+
+1. 这是因为 `local_obj` 是局部变量，`return_nrvo_value`函数执行return语句的同时，`local_obj`的生命周期也即将结束。既然如此，与其返回`local_obj`的副本，不如直接将`local_obj`返回回去，既避免了析构`local_obj`，也避免了重新分配`Foo`对象。
+2. 编译器默认开启RVO时，则可以完成上述优化。当编译加上 *`-fno-elide-constructors`*  标志禁止RVO优化时，那么编译器也会优先选择`mtor`，将`local_obj`的内部数据转移到`return_nrvo_value`的返回值中，最后用于构造`y`，避免重新为`local_obj`中的数据分配内存。
+
+因此，`return_nrvo_value`函数，即使禁止了RVO优化，也是触发两次移动构造函数，而不是一次复制构造、一次移动构造。为了验证确实是将`local_obj`的内部数据转移到了`y`，对`return_nrvo_value`函数修改如下：
+
+
+
+```cpp
+    std::vector<int> return_nrvo_value() {
+
+      std::vector<int> local_vec{1,2,3,4};
+      std::cout<<"object address: "<< std::addressof(local_vec)
+               <<" |data address:" << std::addressof(local_vec[0])<<std::endl;
+      return local_vec;
+    }
+
+    int main(int argc, char const *argv[]) {
+
+      auto y = return_nrvo_value(); 
+      std::cout<<"object address: "<< std::addressof(y)
+               <<" |data address:" << std::addressof(y[0])<<std::endl;
+      return 0; 
+    }
+```
+
+分别开启`rvo`优化、禁止`rvo`优化，输出如下：
+
+
+
+```kotlin
+    $ g++  rvo.cc  -o rvo && ./rvo
+    object address: 0x7ffffc262da0 |data address:0x7ffff55e9eb0
+    object address: 0x7ffffc262da0 |data address:0x7ffff55e9eb0
+
+    $ g++ -fno-elide-constructors rvo.cc  -o rvo && ./rvo
+    object address: 0x7fffc9b6ee80 |data address:0x7fffc2969eb0
+    object address: 0x7fffc9b6ef00 |data address:0x7fffc2969eb0
+```
+
+从输出，可以看出：
+
+- 当开启RVO时，不仅`y`和`local_vec`指向的数据内存一致，`y`和`local_vec`对象本身地址都是一致，即`y`就是`local_vec`；
+- 当使用 *`-fno-elide-constructors`* 禁止RVO时，`y`和 `local_vec` 仍指向同一片内存区，但是此时`y`的地址不是`local_vec`的地址，说明`local_vec`将数据转移到了`y`后，`local_Vec`本身还是析构了，而`y`是基于移动构造函数重新创建的对象。
+
+#### C++17强制编译器实现 URVO
+
+在上面的demo中，`Foo`的`mtor`必须是可访问的，即移动构造函数没有加上`=delete`标志，也没有设置为`private`属性。到了C++17，时代变了，强制编译器实现RVO，就是即便你禁止了移动构造函数，对象也能具有URVO能力。比如，将上面的类`Foo`修改如下：
+
+
+
+```cpp
+    class Foo { 
+    public:
+        Foo() { std::cout<<"default"<<std::endl; }
+        // 禁止复制、移动构造函数
+        Foo(const Foo& rhs) = delete;
+        Foo(Foo&& rhs) =delete;
+    };
+
+    int main(int argc, char const *argv[]) {
+        
+        auto x = return_urvo_value();
+        auto y = return_nrvo_value(); 
+        return 0;
+    }
+```
+
+下面分别在C++14、17的编译输出：
+
+C++14编译输出如下：
+
+
+
+```tsx
+    $ g++ -std=c++14  rvo.cc  -o rvo && ./rvo
+    rvo.cc: In function ‘Foo return_urvo_value()’:
+    rvo.cc:15:14: error: use of deleted function ‘Foo::Foo(Foo&&)’
+       15 |   return Foo{};
+          |              ^
+    rvo.cc:10:3: note: declared here
+       10 |   Foo(Foo&& rhs) =delete;
+          |   ^~~
+    rvo.cc: In function ‘Foo return_nrvo_value()’:
+    rvo.cc:21:10: error: use of deleted function ‘Foo::Foo(const Foo&)’
+       21 |   return local_obj;
+          |          ^~~~~~~~~
+    rvo.cc:9:3: note: declared here
+        9 |   Foo(const Foo& rhs) = delete;
+          |   ^~~
+```
+
+C++17编译输出如下：
+
+
+
+```tsx
+        $ g++ -std=c++17  rvo.cc  -o rvo && ./rvo
+        rvo.cc: In function ‘Foo return_nrvo_value()’:
+        rvo.cc:21:10: error: use of deleted function ‘Foo::Foo(const Foo&)’
+           21 |   return local_obj;
+              |          ^~~~~~~~~
+        rvo.cc:9:3: note: declared here
+            9 |   Foo(const Foo& rhs) = delete;
+              |   ^~~
+```
+
+从两编译输出可以看出，即使在`Foo`同时禁止复制、移动构造函数时，C++17编译器仍然能强实现NRVO，但是都不支持NRVO。但是如果仅禁止`Foo`的复制构造函数呢？注意，在禁止复制构造函数时，要主动实现移动构函数，否则效果和同时禁止`ctor`和`mtor`一样。
+
+
+
+```cpp
+    class Foo { 
+    public:
+        Foo() { std::cout<<"default"<<std::endl; }
+        // 禁止复制、移动构造函数
+        Foo(const Foo& rhs) = delete;
+        Foo(Foo&& rhs) { std::cout<<"mtor"<<std::endl;}
+    };
+```
+
+此时输出如下：
+
+
+
+```cpp
+        $ g++ -std=c++17  rvo.cc  -o rvo && ./rvo
+        default
+        default
+        $ g++ -std=c++14  rvo.cc  -o rvo && ./rvo
+        default
+        default
+```
+
+因此，可总结如下：当函数的返回类型是值类型时，
+
+1. URVO：在C++17之前，对象的`motor`必须是可访问的，才能开启URVO。
+
+   
+
+   ```cpp
+       // return_urvo_value 导致编译失败
+       class Foo { 
+       public:
+           Foo() =default;
+           Foo(const Foo& rhs) =default;
+           Foo(Foo&& rhs) =delete;      // mtor 不可访问
+       };
+   
+       // 编译通过
+       class Foo { 
+       public:
+           Foo() =default;
+           Foo(const Foo& rhs) =default;
+       };
+   ```
+
+   C++17开始，即使完全禁止了对象的`ctor`、`motr`，编译器一样可以实现URVO。
+
+2. NRVO：对象的`mtor`必须可访问的，才能开启。
+
+#### URVO 应用
+
+根据URVO特性，我么可以为 `std::unique_ptr`、 `std::atomic`等提供一个工厂函数 `make_instance`。
+
+
+
+```cpp
+    template <typename T, typename... Args>
+    T make_instance(Args&& ... args) {
+        return T {std::forward<Args>(args)...};
+    }
+
+    int main(int argc, const char* argv[]) {
+        // 普通类型
+        int i   = make_instance<int>(42);
+        // std::unique_ptr 实现了 移动构造函数，因此可以编译成功 
+        auto up = make_instance<std::unique_ptr<int>>(new int{ 42 }); 
+        // 禁止了复制构造函数，但是也没有实现移动构造函数，因此要到 C++17 才能编译过
+        auto ai = make_instance<std::atomic<int>>(42);                  
+        return 0;
+    }
+```
+
+在上面的`make_instance`对于`std::unique_ptr`、`std::atomic`要求不同：
+
+- `std::unique_ptr`：虽然禁止了`ctor`，但实现`mtor`，因此它在C++11中可以开启NRVO。注意，在C++14中已经为`std::unique_ptr`提供了工厂函数`std::make_unique`，实现如下：
+
+  
+
+  ```cpp
+        // 和 make_instance 如出一辙
+        template <typename _Tp, typename... _Args>
+        unique_ptr<_Tp> make_unique(_Args && ...__args)
+        {
+          return unique_ptr<_Tp>(new _Tp(std::forward<_Args>(__args)...));
+        }
+  ```
+
+- `std::atomic`：同时禁止了`ctor`、`mtor`，因此必须等到 C++17，`make_instance`函数才能为`std::atmoic`创建对象。
+
+### 函数值传递
+
+在 [函数模板之值传递与引用传递的不同类型推导规则辨析](https://links.jianshu.com/go?to=https%3A%2F%2Fmp.weixin.qq.com%2Fs%3F__biz%3DMzkyMjIxMzIxNA%3D%3D%26mid%3D2247483974%26idx%3D1%26sn%3D2be406fac97ff57e7a864bf8a509b1f1%26chksm%3Dc1f68c77f6810561412366b292a567882b4dcfc178fe9d7fc206a88f9f22c2e05d498cce5d5b%26token%3D421354495%26lang%3Dzh_CN%23rd) 一文中，深度讲解了函数模板基于值传递和引用传递的优劣。在讲值传递时，未必总是发生复制行为：`pass_by_value`函数传入右值时，也会发生copy elision 行为，即使禁止编译器的copy elision 行为，也是优先调用对象的`mtor`。
+
+
+
+```cpp
+    void pass_by_value(Foo foo) { 
+      // ...
+    }
+
+    int main(int argc, char const *argv[]) {
+      auto x = return_urvo_value();
+      auto y = return_nrvo_value(); 
+
+      pass_by_value(Foo{});
+      pass_by_value(std::move(x));
+
+      return 0;
+    }
+```
+
+最终的输出也是调用默认三次构造函数：
+
+
+
+```cpp
+    $ g++ -std=c++11  rvo.cc  -o rvo && ./rvo
+    default
+    default
+    default
+```
+
+到此，copy elision 的两个主要应用场景基本分析结束。
+
+
+
+作者：fibonaccii
+链接：https://www.jianshu.com/p/d4ec1b7334fd
+来源：简书
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
 
 
 
