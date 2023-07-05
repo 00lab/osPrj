@@ -1759,6 +1759,44 @@ x86汇编语法两种常见格式：Intel汇编语法和AT&T汇编语法。Intel
 
 ## ELF文件
 
+可执行文件格式有两种：Windows平台下的PE文件格式和Linux平台下的ELF文件格式。
+
+ELF文件包括：可执行文件（Executable File）、可重定位目标文件（Relocatable Object File）、共享目标文件（Shared Object File）、核心转储文件（Core Dump File）。
+
+汇编器生成的目标文件是ELF格式的可重定位目标文件，链接器生成的是ELF格式的可执行文件。
+
+ELF文件常见的结构（图中N表示表项的个数）。在ELF文件中，保存的最关键的信息是程序中的代码和数据。一般的，程序的代码以二进制指令的形式保存在代码段（.text）中，程序的数据以二进制的形式保存在数据段（.data）或“.bss”段中。
+
+![image-20230706003737979](https://gitee.com/shengbao/images/raw/master/image-20230706003737979.png)
+
+在Linux系统的“/usr/include/elf.h”头文件中，定义了ELF文件涉及的所有数据结构。
+
+```c
+typedef uint16_t Elf32_Half;                                   //半字，2字节
+typedef uint32_t Elf32_Word;                                   //字，4字节
+typedef uint32_t Elf32_Addr;                                   //地址，4字节
+typedef uint32_t Elf32_Off;                                   //偏移，4字节
+#define EI_NIDENT (16)                                          //魔数长度
+typedef struct{
+    unsigned char    e_ident[EI_NIDENT];              //魔数
+    Elf32_Half       e_type;                                   //文件类型
+    Elf32_Half       e_machine;                                //机器类型
+    Elf32_Word       e_version;                                //版本号
+    Elf32_Addr       e_entry;                                  //程序入口点
+    Elf32_Off       e_phoff;                                   //程序头表文件偏移
+    Elf32_Off       e_shoff;                                   //段表文件偏移
+    Elf32_Word       e_flags;                                  //平台相关标记
+    Elf32_Half       e_ehsize;                                 //文件头大小
+    Elf32_Half       e_phentsize;                              //程序头表项大小
+    Elf32_Half       e_phnum;                                  //程序头表项个数
+    Elf32_Half       e_shentsize;                              //段表项大小
+    Elf32_Half       e_shnum;                                  //段表项个数
+    Elf32_Half       e_shstrndx;                               //段表字符串表的段表索引
+} Elf32_Ehdr; //文件头
+```
+
+
+
 # ARM后端
 
 
