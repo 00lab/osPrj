@@ -3055,13 +3055,200 @@ LLVM （Low Level Virtual Machine，底层虚拟机)），LLVM 从 1.0 到 2.5 �
 
 如果你下载 LLVM 的代码，那么它就是一个 IR 到 ARM/机器码的编译器。比如 bin/opt 就是对 IR 的优化器，bin/llc 就是 IR->ASM 的翻译，bin/llvm-mc 就是汇编器。如果你再从http://llvm.org 下载 Clang，那么就有了 C->IR 的翻译以及完整的编译器 Driver。GDB 是 GNU 的调试器。只要编译器支持 DWARF 格式，就可以用 GDB 调试。
 
+## LLVM的各个二进制
+
+clang: C语言编译器，类似于gcc clang++: C++编译器，类似于g++。clang++只是clang的一个别名。 clang-format：按照固定的规范格式化C/C++代码，非常智能。文档请见：http://clang.llvm.org/docs/ClangFormat.html clang-modernize：把按照C++98标准写的代码，转成C++11标准的。文档请见：http://clang.llvm.org/extra/ModernizerUsage.html llvm-as：LLVM 汇编器 llvm-dis： LLVM 反汇编器 opt：LLVM 优化器 llc：LLVM 静态编译器 lli：LLVM的字节码执行器（某些平台下支持JIT） llvm-link：LLVM的字节码链接器 llvm-ar：LLVM的静态库打包器，类似unix的ar。 llvm-nm：类似于unix的nm llvm-ranlib:为 llvm-ar 打包的文件创建索引 llvm-prof：将 ‘llvmprof.out’ raw 数据格式化成人类可读的报告 llvm-ld ：带有可装载的运行时优化支持的通用目标连接器 llvm-config：打印出配置时 LLVM 编译选项、库、等等 llvmc：一个通用的可定制的编译器驱动 llvm-diff：比较两个模块的结构 bugpoint：自动案例测试减速器 llvm-extract：从 LLVM 字节代码文件中解压出一个函数 llvm-bcanalyzer：字节代码分析器 （分析二进制编码本身，而不是它代表的程序 FileCheck：灵活的文件验证器，广泛的被测试工具利用 tblgen：目标描述阅读器和生成器 lit：LLVM 集成测试器，用于运行测试
+
+**LLVM的主要子项目**
+
+| 项目名称           | 描述                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| LLVM Core          | 包含一个源代码和目标架构无关的独立配置器，一个针对很多主流(甚至于一些非主流)的CPU的汇编代码生成支持。这些核心库围绕IR来构建。 |
+| Clang              | 一个C/C++/Objective-C编译器，提供高效快速的编译效率，风格良好、极其有用的错误和警告信息。 |
+| LLDB               | 基于LLVM提供的库和Clang构建的优秀的本地调试器。原生支持调试多线程程序。 |
+| LLD                | clang/llvm内置的链接器                                       |
+| dragonegg          | gcc插件，可将GCC的优化和代码生成器替换为LLVM的相应工具。     |
+| libc++, libc++ ABI | 符合标准的，高性能的C++标准库实现，以及对C++11的完整支持。   |
+| compiler-rt        | 为动态测试工具（如AddressSanitizer，ThreadSanitizer，MemorySanitizer和DataFlowSanitizer）提供了运行时库的实现。为像“__fixunsdfdi”这样的低级代码生成器支持进程提供高层面的调整实现，也提供当目标没有用于实现核心IR操作的短序列本机指令时生成的其他调用。 |
+| OpenMP             | 提供一个OpenMP运行时，用于Clang中的OpenMP实现。              |
+| vmkit              | 基于LLVM的Java和.NET虚拟机实现。                             |
+| polly              | 支持高级别的循环和数据本地化优化支持的LLVM框架，使用多面体模型实现一组缓存局部优化以及自动并行和矢量化。 |
+| libclc             | OpenCL(开放运算语言)标准库的实现.                            |
+| klee               | 基于LLVM编译基础设施的符号化虚拟机。它使用一个定理证明器来尝试评估程序中的所有动态路径，以发现错误并证明函数的属性。 klee的一个主要特性是它可以在检测到错误时生成测试用例。 |
+| SAFECode           | 用于C / C ++程序的内存安全编译器。 它通过运行时检查来检测代码，以便在运行时检测内存安全错误（例如，缓冲区溢出）。 它可用于保护软件免受安全攻击，也可用作Valgrind等内存安全错误调试工具 |
+
+https://codetop.cc/home
+
+
+
+## LLVM使用
+
+**编译生成可执行文件**
+
+```shell
+clang hello.c -o hello
+```
+
+### 编译生成bc文件（不可读）
+
+得到 LLVM 字节码文件.bc（不可读字节码文件）
+
+```shell
+clang -O3 -emit-llvm hello.c -c -o hello.bc
+```
+
+- -O3: 表示使用编译优化级别3来编译程序
+- -emit-llvm: 表示要通过 clang 得到 LLVM 的字节码文件(.bc)或者汇编文件(.ll)
+- -c: 表示要得到字节码文件
+- -g: 用于 gdb 调试
+- -o: 指定了输出文件的名称，**字节码文件**一般以** .bc 结尾**
+
+### llvm-dis反汇编工具
+
+```shell
+llvm-dis hello.bc hello.ll
+```
+
+用llvm-dis工具反汇编得到 LLVM 汇编文件（可读）
+
+### 得到 LLVM 汇编文件（可读）
+
+-S: 表示要得到汇编文件
+
+```shell
+clang -O3 -emit-llvm hello.c -S -o hello.ll
+```
+
+### llvm-as 汇编（.ll）转字节码（.bc）
+
+用 llvm-as 工具通过汇编文件（.ll 文件）得到字节码文件（.bc 文件）
+
+```shell
+llvm-as hello.ll hello.bc
+```
+
+### 编译 cpp 文件
+
+**clang++**: 编译 .cpp 文件
+-Wall: 输出警告信息
+-g: 用于 gdb 调试
+-std: 编译的标准（-std=c++98、-std=c++03、-std=c++11、-std=c++0x）
+-stdlib: C++ 标准头文件
+
+```shell
+clang++ -Wall -g -std=c++11 -stdlib=libc++ Hello.cpp -o hello
+clang++ -Wall -std=c++11 -stdlib=libc++ -emit-llvm -c Hello.cpp -o hello.bc
+```
+
+## llvm输入输出流
+
+llvm::raw_ostream
+
+llvm::raw_ostream是一个抽象class，有两个重要的纯虚函数由子类实现，write_impl()保存将数据写入基础流的逻辑，current_pos()返回流中当前正在写入的位置。
+
+llvm提供了以下输出流实现：
+
+- `outs()` for writing to *stdout*
+- `errs()` for writing to *stderr*
+- `nulls()` which discards the output (like writing to */dev/null*)
+- `raw_fd_ostream(StringRef, std::error_code)` for writing to a file descriptor
+- `raw_string_ostream(std::string)` for writing to a *std::string*
+
+前3个流直接返回其对象引用，如
+
+```cpp
+llvm::raw_ostream &output = llvm:outs();
+```
+
+而fd/string流可使用抽象对象构造出来，如
+
+```cpp
+//定义流对象
+std::string str;
+llvm::raw_string_ostream output_str(str);
+
+std::string filename = "test_output.txt");
+std::error_code ec;
+llvm::raw_fd_ostream output_file(filename, ec, sys::fs::F_Text);
+//定义函数，其中llvm::Value对象可直接使用流操作符输出来
+void print_test(llvm::raw_ostream out) {
+llvm::Value tmp;
+out<<"test value "<< tmp;
+}
+//使用
+print_test(output_str)
+print_test(output_file)
+```
+
+另外，每个llvm::Value*都有一个自己的print函数，只需把llvm::raw_ostream对象传入即可。
+
+```cpp
+llvm::Value tmp;
+tmp->print(outs())
+```
+
+**raw_fd_ostream构造附加内容**
+
+llvm::raw_fd_ostream在头文件llvm/Support/raw_ostream.h中声明。
+共有以下6种构造方法：
+
+```c++
+//打开指定的文件（Filename）进行写入。如果发生错误，则将有关错误的信息输入EC，并应立即销毁这个stream。作为一种特殊情况，如果文件名是“-”，那么这个stream将使用STDOUT_FILENO而不是打开文件。这将不会关闭stdout描述符。
+raw_fd_ostream::raw_fd_ostream (StringRef Filename, std::error_code & EC);
+//CreationDisposition是枚举类型，共有4种：
+//(1) CD_CreateAlways（打开文件时，如果它已经存在，截断它；如果它还不存在，创建一个新文件）截断文件的意思是打开文件的时候先将文件的内容清空，再进行写入；并不是删除文件。
+//(2) CD_CreateNew（打开文件时，如果它已经存在，fail；如果它还不存在，创建一个新文件）
+//(3) CD_OpenExisting（打开文件时，如果它已经存在，则打开文件，并将偏移量设置为0；如果它还不存在，fail）
+//(4) CD_OpenAlways （打开文件时，如果它已经存在，则打开文件，并将偏移量设置为0；如果它还不存在，创建一个新文件）
+raw_fd_ostream::raw_fd_ostream (StringRef Filename, std::error_code & EC, sys::fs::CreationDisposition Disp);
+//FileAccess枚举类型：FA_Read和FA_Write。
+
+```
+
+ 
+
+## 语法：operator std::string() const
+
+来自于 LLVM StringRef.h
+
+```c++
+operator std::string() const {
+return str();
+}
+```
+
+这是一个强制转换的操作符重载，若某个地方需要string对象，就会调用这个重载。如
+
+```c++
+class Foo {
+public:
+operator std::string() const { return "I am a foo!"; }
+};
+...
+Foo foo;
+std::cout << foo; // Will print "I am a foo!".
+```
+
+上边代码相当于实现了operator<<(std::ostream&, const Foo&)重载函数。不过建议重载<<更加直观。
+
+ 
+
+
+
 # GCC
+
 GCC（GNU Compiler Collection，GNU 编译器套装），是一套由 GNU 开发的编程语言编译器。GCC 原名为 GNU C 语言编译器，因为它原本只能处理 C语言。GCC 快速演进，可处理 C++、Fortran、Pascal、Objective-C、Java 以及 Ada 等他语言。
 GCC 优势：支持 JAVA/ADA/FORTRAN、GCC 支持更多平台、GCC 更流行，广泛使用，支持完备、GCC 基于 C，不需要 C++ 编译器即可编译。
 
 
 
-# 
+# 算法
+
+## 哈夫曼编码（Huffman Coding）
+
+https://blog.csdn.net/qq_19887221/article/details/125322754
+
+ 
 
 # 编程基础
 
@@ -3909,6 +4096,28 @@ cacheData.splice(cacheData.begin(), cacheData, it);
 ### ostream
 
 https://blog.csdn.net/sheng_bw/article/details/85336298
+
+## C++定义常量的几种方式
+
+### define
+
+\#define 是 C 语言中定义常量的方式，在 C++ 中也可以使用。如 "#define MAX_NUM 200"，define 在预处理阶段起作用；宏常量没有数据类型，只是进行文本替换替换；宏常量在内存中会产生多份相同的备份。
+
+### const
+
+const 是 C++ 中的变量修饰符，表示该变量是只读的，不可改变的，const 是变量类型的一部分。如“const int max_num = 200"，const 在编译、运行阶段起作用；const 常量有数据类型，编译器可以进行类型安全检查；const 常量在程序运行过程中只有一份备份。
+
+### enum
+
+enum 是 C++ 中一种派生数据类型，它是由用户定义的若干枚举常量的集合。如“enum class Color{r, g, b};"，enum 在编译时被全部求值；enum 常量隐含数据类型是整数，其最大值有限，且不能表示浮点类型 ；枚举常量不会占用对象的存储空间。
+
+### constexpr
+
+C++ 中使用 constexpr 表示常量表达式，是指值不会改变并且在编译过程就能得到计算结果的表达式，constexpr 是声明的一部分，而不是变量类型的一部分。如“constexpr int max_num = 200"，constexpr 的变量的值必须是编译器在编译的时候就可以确定的。
+
+## explicit
+
+*explicit关键字*的作用就是防止类构造函数的隐式自动转换
 
 # 构建与工具
 
